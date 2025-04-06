@@ -1,0 +1,77 @@
+@startuml
+!include c4/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+
+title ER-диаграмма
+
+Container_Boundary(db, "База данных мониторинга"){
+    entity Telemetry {
+      * deviceId
+      --
+      temperature
+      status_time
+    }
+}
+
+Container_Boundary(db_devices, "База данных устройств"){
+    entity Device {
+      * deviceId
+      --
+      name
+      status_time
+    }
+
+    entity DeviceFeature {
+      * featureId
+      --
+      * deviceId
+      name
+      type
+      value
+    }
+
+    Device --|{ DeviceFeature
+}
+
+Container_Boundary(db_flows, "Хранение сценариев для устройств"){
+    entity Flow {
+      * flowId
+      --
+      name
+    }
+
+    entity FlowStep {
+          * stepId
+          --
+          * flowId
+          * deviceId
+          name
+          type
+          command
+          condition
+          nextStepId
+        }
+
+    Flow --|{ FlowStep
+}
+
+Container_Boundary(db_user, "База данных пользователей"){
+    entity User {
+      * flowId
+      --
+      name
+      phone
+      email
+    }
+}
+
+Container_Boundary(db_flow_runtime, "База данных исполнения сценариев"){
+    entity FlowExecution {
+      * flowId
+      * currentFlowStepId
+      --
+      time
+    }
+}
+@enduml

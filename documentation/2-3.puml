@@ -1,0 +1,21 @@
+@startuml
+!include c4/C4_Container.puml
+
+title Диаграмма кода для Тёплый дом
+
+package "message" {
+  class Message {
+  }
+  class TemperatureMessage {
+  }
+  class DeviceStatusMessage {
+  }
+}
+class MetricsConsumer {
+  +onMessage(Message message)
+}
+
+Message <|-- TemperatureMessage
+Message <|-- DeviceStatusMessage
+MetricsConsumer --> Message : onMessage
+@enduml

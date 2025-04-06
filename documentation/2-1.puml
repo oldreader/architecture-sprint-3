@@ -1,0 +1,87 @@
+@startuml
+!include c4/C4_Context.puml
+!include c4/C4_Container.puml
+LAYOUT_WITH_LEGEND()
+SHOW_PERSON_OUTLINE()
+LAYOUT_LEFT_RIGHT()
+
+title Диаграмма Контейнеров для Тёплый дом
+
+Person(user, "Пользователь")
+Container(devices, "Датчики", "Java", "Отправка температуры")
+Container(active_devices, "Устройства", "Java", "Умные устройства: термостат и т.д.")
+
+System_Boundary(c1, "Тёплый дом") {
+    Boundary(api_boundary,""){
+        Container(api_gateway, "Api Gateway", "Java", "Gateway Api для внешнего мира, проверка авторизации")
+        Container(devices_gateway, "Device Gateway", "Java", "Device Gateway для устройств")
+    }
+
+    Boundary(broker_boundary,""){
+    SystemQueue(kafka, "Брокер сообщений", "Kafka")
+    }
+
+    Boundary(service_boundary,""){
+    Boundary(device_service_boundary,""){
+        Container(device_service, "Сервис управления устройствами", "Java", "Регистрация устройств. Включение/выключение термостатов")
+        ContainerDb(db_devices, "База данных устройств", "Postgres", "Хранение устройств")
+        Rel(device_service, db_devices, "Сохранение устройств", "HTTPS")
+    }
+
+    Rel(device_service, kafka, "Уведомление Сервиса управления устройствами", "HTTPS")
+
+    Boundary(flow_service_boundary,""){
+        Container(flow_service, "Сервис управления сценариями", "Java", "Создание/редактирование сценариев")
+        ContainerDb(db_flows, "База данных сценариев", "Postgres", "Хранение сценариев для устройств")
+        Rel(flow_service, db_flows, "Сохранение сценариев", "HTTPS")
+    }
+
+    Boundary(user_service_boundary,""){
+        Container(user_service, "Сервис управления пользователями", "Java", "Регистрация пользователей. Редактирование")
+        ContainerDb(db_user, "База данных пользователей", "Postgres", "Хранение пользователей")
+        Rel(user_service, db_user, "Сохранение пользователей", "HTTPS")
+    }
+
+    Boundary(monitoring_service_boundary,""){
+        Container(monitoring_service, "Сервис мониторинга", "Java", "Получение температуры, включение/выключение термостатов")
+        ContainerDb(db, "База данных мониторинга", "Mongo", "Хранение температуры и других метрик")
+        Rel(monitoring_service, db, "Сохранение температуры от датчиков", "HTTPS")
+    }
+
+    Rel(kafka, monitoring_service, "Публикация температуры от датчиков", "HTTPS")
+    Rel(monitoring_service, kafka, "Публикация сообщения об изменении температуры", "HTTPS")
+
+    Boundary(flow_runtime_service_boundary,""){
+        Container(flow_runtime_service, "Сервис исполнения сценариев", "Java", "Подписка на ивенты, исполнение сценариев")
+        ContainerDb(db_flow_runtime, "База данных исполнения сценариев", "Postgres", "Хранение состояния сценария")
+        Rel(flow_runtime_service, db_flow_runtime, "Сохранение состояния flow", "HTTPS")
+    }
+
+    Rel(flow_service, flow_runtime_service, "Загрузка сценариев на исполнение", "HTTPS")
+    Rel(kafka, flow_runtime_service, "Подписка/получение сообщений от датчиков, других сценариев", "HTTPS")
+    Rel(flow_runtime_service, kafka, "Публикация сообщений: включение/выключение устройств, сообщения для других сценариев", "HTTPS")
+
+    Container(auth_service, "Сервис авторизации", "Java", "Выдача json токенов")
+    Rel(auth_service, user_service, "Uses", "HTTPS")
+    Rel(auth_service, device_service, "Uses", "HTTPS")
+
+    Rel(api_gateway, auth_service, "Uses", "HTTPS")
+    Rel(devices_gateway, auth_service, "Uses", "HTTPS")
+    Rel(api_gateway, flow_service, "Редактирование сценариев", "HTTPS")
+    Rel(api_gateway, device_service, "Добавление, ручное включение/выключение устройств", "HTTPS")
+    Rel(api_gateway, monitoring_service, "Получение показателей датчиков", "HTTPS")
+    Rel(api_gateway, user_service, "Получение пользователей", "HTTPS")
+
+    Rel(devices_gateway, kafka, "Публикация температуры от датчиков", "HTTPS")
+    Rel(kafka, devices_gateway, "Уведомление устройств о включении/выключении", "HTTPS")
+    }
+}
+
+Rel(user, api_gateway, "Получение показателей датчиков", "HTTPS")
+Rel(user, api_gateway, "Ручное включение/выключение устройств", "HTTPS")
+Rel(user, api_gateway, "Редактирование flow", "HTTPS")
+
+Rel(devices, devices_gateway, "Публикация температуры от датчиков", "HTTPS")
+Rel(active_devices, devices_gateway, "Управление умными устройствами", "HTTPS")
+
+@enduml
