@@ -1,0 +1,19 @@
+@startuml
+!include c4/C4_Context.puml
+!include c4/C4_Container.puml
+LAYOUT_WITH_LEGEND()
+
+title Диаграмма Контекста для Тёплый дом
+
+
+Person(user, "Пользователь")
+Person(admin, "Администратор")
+System_Boundary(c1, "Тёплый дом") {
+    Container(web_app, "Web Приложение", "Java", "Получение температуры, включение/выключение термостатов")
+}
+System(twitter, "Датчики")
+
+Rel(admin, web_app, "Uses", "HTTPS")
+Rel(user, web_app, "Uses", "HTTPS")
+Rel(web_app, twitter, "Получение температуры от датчиков", "HTTPS")
+@enduml
